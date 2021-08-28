@@ -8,4 +8,4 @@ dependencies = [
 sources = []
 subdir('src')
 
-executable('flashlightd', sources, dependencies: dependencies)
+executable('flashlightd', sources, dependencies: dependencies, install: true, install_dir: get_option('libexecdir'))

@@ -1,0 +1,18 @@
+Source: flashlightd
+Maintainer: Giuseppe Corti <giuseppe.corti@pm.me>
+Section: misc
+Priority: optional
+Build-Depends: debhelper (>= 13),
+               meson,
+               libglib2.0-dev,
+               valac,
+               libgstreamer1.0-dev,
+Standards-Version: 4.5.0.3
+Vcs-Browser: https://github.com/droidian/flashlightd
+Vcs-Git: https://github.com/droidian/flashlightd.git
+
+Package: flashlightd
+Architecture: any
+Depends: ${misc:Depends},
+         ${shlibs:Depends},
+Description: simple daemon to manage camera flash light using gstreamer.

@@ -1,0 +1,10 @@
+[Unit]
+Description=flashlight daemon
+BindsTo=gnome-session.target
+After=gnome-session.target
+Conflicts=gnome-session@gnome-login.target
+
+[Service]
+Type=simple
+ExecStart=/usr/libexec/flashlightd
+Restart=on-failure

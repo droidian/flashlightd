@@ -39,7 +39,7 @@ public class FlashlightServer : GLib.Object {
             builder.add ("{sv}", "Brightness", i);
 
             set_flashlight();
-	}
+        }
 
         try {
             conn.emit_signal (null,
