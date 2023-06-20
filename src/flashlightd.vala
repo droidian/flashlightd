@@ -10,7 +10,8 @@ public class FlashlightServer : GLib.Object {
                                   "/sys/class/leds/torch-light0/brightness",
                                   "/sys/class/leds/torch-light1/brightness",
                                   "/sys/class/leds/led:torch_0/brightness",
-                                  "/sys/class/leds/led:torch_1/brightness"};
+                                  "/sys/class/leds/led:torch_1/brightness",
+                                  "/sys/devices/platform/soc/soc:i2c@1/i2c-23/23-0059/s2mpb02-led/leds/torch-sec1/brightness"};
 
     private const size_t sysfs_switch_size = 2;
     private const string[] sysfs_switch = {"/sys/class/leds/led:switch/brightness",
