@@ -35,17 +35,30 @@ public class FlashlightServer : GLib.Object {
     }
 
     private bool sysfs = false;
+    Gst.StateChangeReturn result;
 
     private void set_flashlight(){
         if (Brightness > 0){
             // turn on flashlight
-            pipeline = Gst.parse_launch("droidcamsrc video-torch=true mode=2 ! fakesink");
-
-            var result = pipeline.set_state (State.PLAYING);
+            try {
+                var pipeline = Gst.parse_launch("droidcamsrc video-torch=true mode=2 ! fakesink");
+                var result = pipeline.set_state (State.PLAYING);
+            } catch (Error e) {
+                sysfs = true;
+            }
 
             // fallback to sysfs if droidcamsrc isn't available
-            if(result == StateChangeReturn.FAILURE) {
+            if(result == StateChangeReturn.FAILURE || sysfs) {
                 sysfs = true;
+                // on halium 10 we don't have droidcamsrc so gst.parse returns null and fails when turning the torch off
+                if (pipeline == null || (pipeline is Gst.Bin && (pipeline as Gst.Bin).get_children_count() == 0)) {
+                   try {
+                       pipeline = Gst.parse_launch("fakesink");
+                   } catch (Error e) {
+                       // it might already be initialized so leave it as is
+                   }
+                }
+
                 foreach (var path in sysfs_path) {
                     var file = File.new_for_path(path);
                     if (file.query_exists()) {
@@ -54,10 +67,11 @@ public class FlashlightServer : GLib.Object {
                             out_stream.write_all(SYSFS_ENABLE.data, null);
                             out_stream.close();
                         } catch (Error e) {
-
+                            // some paths might throw an error because of permissions we just want to ignore those
                         }
                     }
                 }
+
                 foreach (var path in sysfs_switch) {
                     var file = File.new_for_path(path);
                     if (file.query_exists()) {
@@ -66,7 +80,7 @@ public class FlashlightServer : GLib.Object {
                             out_stream.write_all(SYSFS_ENABLE.data, null);
                             out_stream.close();
                         } catch (Error e) {
-
+                            // some paths might throw an error because of permissions we just want to ignore those
                         }
                     }
                 }
@@ -75,6 +89,7 @@ public class FlashlightServer : GLib.Object {
             // turn off flashlight and free resources
             if(pipeline != null) {
                 var result = pipeline.set_state (State.NULL);
+
                 if(sysfs == true) {
                     foreach (var path in sysfs_path) {
                         var file = File.new_for_path(path);
@@ -84,10 +99,11 @@ public class FlashlightServer : GLib.Object {
                                 out_stream.write_all(SYSFS_DISABLE.data, null);
                                 out_stream.close();
                             } catch (Error e) {
-
+                                // some paths might throw an error because of permissions we just want to ignore those
                             }
                         }
                     }
+
                     foreach (var path in sysfs_switch) {
                         var file = File.new_for_path(path);
                         if (file.query_exists()) {
@@ -96,7 +112,7 @@ public class FlashlightServer : GLib.Object {
                                 out_stream.write_all(SYSFS_DISABLE.data, null);
                                 out_stream.close();
                             } catch (Error e) {
-
+                                // some paths might throw an error because of permissions we just want to ignore those
                             }
                         }
                     }
