@@ -33,16 +33,16 @@ public class FlashlightServer : GLib.Object {
         this.notify.connect (send_property_change);
     }
 
-    public void SetBrightness(uint bvalue) {
+    public void SetBrightness(uint bvalue) throws GLib.Error {
         // mimic logind SetBrightness
         Brightness = (int) bvalue;
     }
 
-    private bool sysfs = false;
+    public static bool sysfs = false;
 
     Gst.StateChangeReturn result;
 
-    private void set_flashlight(){
+    private void set_flashlight() {
         // exynos devices cannot use our gst-droid plugin with droidcamsrc sink (at least not on droidian) and they use different values and different paths for flashlight in sysfs.
         // as a result cannot use the fallack sysfs backend or the gstreamer stuff so lets check if device is exynos and act accordingly.
         if (is_exynos) {
@@ -59,22 +59,24 @@ public class FlashlightServer : GLib.Object {
                 }
             }
         } else {
-            if (Brightness == 0 && pipeline != null) {
-                pipeline.set_state (State.NULL);
-                pipeline = null;
-                return;
-            } else if (Brightness > 0){
-                // turn on flashlight
-                try {
-                    pipeline = Gst.parse_launch("droidcamsrc video-torch=true mode=2 ! fakesink");
-                    result = pipeline.set_state (State.PLAYING);
-                } catch (Error e) {
-                    sysfs = true;
+            if (!sysfs) {
+                if (Brightness == 0 && pipeline != null) {
+                    pipeline.set_state (State.NULL);
+                    pipeline = null;
+                    return;
+                } else if (Brightness > 0) {
+                    // turn on flashlight
+                    try {
+                        pipeline = Gst.parse_launch("droidcamsrc video-torch=true mode=2 ! fakesink");
+                        result = pipeline.set_state (State.PLAYING);
+                    } catch (Error e) {
+                        sysfs = true;
+                    }
                 }
             }
 
             // fallback to sysfs if droidcamsrc isn't available
-            if(result == StateChangeReturn.FAILURE || sysfs) {
+            if (result == StateChangeReturn.FAILURE || sysfs) {
                 sysfs = true;
 
                 foreach (var path in sysfs_path) {
@@ -140,6 +142,8 @@ void main (string[] args) {
     uint8[] content;
     string etag_out;
     string device_model_file = "/proc/device-tree/model";
+    string flashlight_sysfs_file = "/usr/lib/droidian/device/flashlightd-sysfs";
+
     try {
         if (FileUtils.test (device_model_file, FileTest.EXISTS)) {
             File file = File.new_for_path (device_model_file);
@@ -148,6 +152,10 @@ void main (string[] args) {
             if (raw_content.contains ("EXYNOS")) {
                 FlashlightServer.is_exynos = true;
             }
+        }
+
+        if (FileUtils.test (flashlight_sysfs_file, FileTest.EXISTS)) {
+            FlashlightServer.sysfs = true;
         }
     } catch (Error e) {
         // permission issue?
