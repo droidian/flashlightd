@@ -5,17 +5,7 @@ using GLib;
 public class FlashlightServer : GLib.Object {
     public static bool is_exynos = false;
 
-    private const size_t path_sysfs_size = 9;
-    private const string[] sysfs_path = {"/sys/class/leds/torch-light/brightness",
-                                  "/sys/class/leds/led:flash_torch/brightness",
-                                  "/sys/class/leds/flashlight/brightness",
-                                  "/sys/class/leds/torch-light0/brightness",
-                                  "/sys/class/leds/torch-light1/brightness",
-                                  "/sys/class/leds/led:torch_0/brightness",
-                                  "/sys/class/leds/led:torch_1/brightness",
-                                  "/sys/devices/platform/soc/soc:i2c@1/i2c-23/23-0059/s2mpb02-led/leds/torch-sec1/brightness",
-                                  "/sys/class/leds/led:switch/brightness",
-                                  "/sys/class/leds/led:switch_0/brightness"};
+    public static List<string> sysfs_path;
 
     private const size_t sysfs_exynos_size = 1;
     private string[] sysfs_exynos = {"/sys/devices/virtual/camera/flash/rear_flash"};
@@ -31,6 +21,20 @@ public class FlashlightServer : GLib.Object {
     public FlashlightServer (DBusConnection conn) {
         this.conn = conn;
         this.notify.connect (send_property_change);
+    }
+
+    public static void initialize() {
+        sysfs_path = new List<string>();
+        sysfs_path.append("/sys/class/leds/torch-light/brightness");
+        sysfs_path.append("/sys/class/leds/led:flash_torch/brightness");
+        sysfs_path.append("/sys/class/leds/flashlight/brightness");
+        sysfs_path.append("/sys/class/leds/torch-light0/brightness");
+        sysfs_path.append("/sys/class/leds/torch-light1/brightness");
+        sysfs_path.append("/sys/class/leds/led:torch_0/brightness");
+        sysfs_path.append("/sys/class/leds/led:torch_1/brightness");
+        sysfs_path.append("/sys/devices/platform/soc/soc:i2c@1/i2c-23/23-0059/s2mpb02-led/leds/torch-sec1/brightness");
+        sysfs_path.append("/sys/class/leds/led:switch/brightness");
+        sysfs_path.append("/sys/class/leds/led:switch_0/brightness");
     }
 
     public void SetBrightness(uint bvalue) throws GLib.Error {
@@ -50,11 +54,11 @@ public class FlashlightServer : GLib.Object {
                 var file = File.new_for_path(path);
                 if (file.query_exists()) {
                     try {
-                            var out_stream = file.replace(null, false, FileCreateFlags.NONE, null);
-                            out_stream.write_all((Brightness > 0) ? EXYNOS_SYSFS_ENABLE.data : EXYNOS_SYSFS_DISABLE.data, null);
-                            out_stream.close();
+                        var out_stream = file.replace(null, false, FileCreateFlags.NONE, null);
+                        out_stream.write_all((Brightness > 0) ? EXYNOS_SYSFS_ENABLE.data : EXYNOS_SYSFS_DISABLE.data, null);
+                        out_stream.close();
                     } catch (Error e) {
-                            // some paths might throw an error because of permissions we just want to ignore those
+                        // some paths might throw an error because of permissions we just want to ignore those
                     }
                 }
             }
@@ -123,8 +127,7 @@ public class FlashlightServer : GLib.Object {
 }
 
 [DBus (name = "org.droidian.Flashlightd")]
-public errordomain FlashlightError
-{
+public errordomain FlashlightError {
     SOME_ERROR
 }
 
@@ -143,6 +146,7 @@ void main (string[] args) {
     string etag_out;
     string device_model_file = "/proc/device-tree/model";
     string flashlight_sysfs_file = "/usr/lib/droidian/device/flashlightd-sysfs";
+    string custom_sysfs_nodes_file = "/usr/lib/droidian/device/flashlightd-sysfs-nodes";
 
     try {
         if (FileUtils.test (device_model_file, FileTest.EXISTS)) {
@@ -164,6 +168,26 @@ void main (string[] args) {
     if (!FlashlightServer.is_exynos) {
         // Initialize GStreamer
         Gst.init (ref args);
+    }
+
+    FlashlightServer.initialize();
+
+    try {
+        if (FileUtils.test (custom_sysfs_nodes_file, FileTest.EXISTS)) {
+            File file = File.new_for_path (custom_sysfs_nodes_file);
+            file.load_contents (null, out content, out etag_out);
+            var raw_content = (string) content;
+            string[] new_nodes = raw_content.split(",");
+            foreach (string node in new_nodes) {
+                string trimmed_node = node.strip();
+
+                if (trimmed_node != "") {
+                    FlashlightServer.sysfs_path.append(node.strip());
+                }
+            }
+        }
+    } catch (Error e) {
+        // permission issue?
     }
 
     GLib.Bus.own_name (BusType.SESSION, "org.droidian.Flashlightd", BusNameOwnerFlags.NONE,
