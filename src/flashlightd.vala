@@ -30,14 +30,14 @@ public class FlashlightServer : GLib.Object {
         sysfs_path.append("/sys/class/leds/torch-light0/brightness");
         sysfs_path.append("/sys/class/leds/torch-light1/brightness");
         sysfs_path.append("/sys/class/leds/led:flash_torch/brightness");
-        sysfs_path.append("/sys/class/leds/led:torch_0/brightness");
-        sysfs_path.append("/sys/class/leds/led:torch_1/brightness");
-        sysfs_path.append("/sys/class/leds/led:torch_2/brightness");
-        sysfs_path.append("/sys/class/leds/led:torch_3/brightness");
         sysfs_path.append("/sys/class/leds/led:flash_0/brightness");
         sysfs_path.append("/sys/class/leds/led:flash_1/brightness");
         sysfs_path.append("/sys/class/leds/led:flash_2/brightness");
         sysfs_path.append("/sys/class/leds/led:flash_3/brightness");
+        sysfs_path.append("/sys/class/leds/led:torch_0/brightness");
+        sysfs_path.append("/sys/class/leds/led:torch_1/brightness");
+        sysfs_path.append("/sys/class/leds/led:torch_2/brightness");
+        sysfs_path.append("/sys/class/leds/led:torch_3/brightness");
         sysfs_path.append("/sys/class/leds/led:switch/brightness");
         sysfs_path.append("/sys/class/leds/led:switch_0/brightness");
         sysfs_path.append("/sys/class/leds/led:switch_1/brightness");
